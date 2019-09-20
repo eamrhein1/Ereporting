@@ -89,6 +89,6 @@ ggsave(paste(dir.out, "Figure1_regions_googlemap.png", sep = ""), p2)
 # ggsave(paste(dir.out, "Figure1_regions.png", sep = ""), p2)
 
 
-#register_google(key = "AIzaSyATflwRp_zXRWidD6r0I4oy_26H6BtCEdc") #use once and only for Kaycee
+#register_google(key = "") #use once and only for Kaycee
 #myMap <- get_map(location=myLocation, source="osm",  color="bw")
 
