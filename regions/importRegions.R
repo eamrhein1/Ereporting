@@ -34,7 +34,7 @@ library(raster)
 # --------- #
 
 # state_with_water=shapefile("G:/1.0 Restoration and Monitoring/8.0 Habitat modeling/NFWF Habitat/rawdata/Maryland_Political_Boundaries__State_Boundary/Maryland_Political_Boundaries__State_Boundary")
-state = shapefile("G:/1.0 Restoration and Monitoring/8.0 Habitat modeling/NFWF Habitat/rawdata/Maryland_Physical_Boundaries__County_Boundaries_Detailed/Maryland_Physical_Boundaries__County_Boundaries_Detailed")
+state = shapefile("G:/1.0 Restoration and Monitoring/8.0 Habitat modeling/NFWF Habitat/2.0 Data/rawdata/Maryland_Physical_Boundaries__County_Boundaries_Detailed/Maryland_Physical_Boundaries__County_Boundaries_Detailed")
 # bathy = shapefile("G:/1.0 Restoration and Monitoring/8.0 Habitat modeling/NFWF Habitat/rawdata/Maryland_Bathymetry__Chesapeake_Bay_Contours/Maryland_Bathymetry__Chesapeake_Bay_Contours")
 
 # path for all others
