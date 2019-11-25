@@ -35,6 +35,11 @@ r6_df = broom::tidy(r6, region = "Tidal_Co_1")
 
 # load fishing data
 WM2018 <- read_excel(paste(dir.in, "WatermenData041819.xlsx", sep=""), sheet = 1)
+
+# take spaces out of names
+names(WM2018) = gsub(" ", "", names(WM2018), fixed = TRUE)
+
+# filter
 Dec = WM2018 %>% mutate(mo = month(TripDate), 
                         day = day(TripDate),
                         Zip = as.character(Zip)) %>% 
@@ -45,8 +50,7 @@ Dec = WM2018 %>% mutate(mo = month(TripDate),
 # ggplot() + geom_histogram(data = Dec, aes(x = region), stat = "count")
 # Dec %>% group_by(region) %>% distinct(FisherName) %>% summarize(n=n())
 
-# take spaces out of names
-names(WM2018) = gsub(" ", "", names(WM2018), fixed = TRUE)
+
 # -------------------- # 
 
 # -------------------- # 
@@ -130,3 +134,7 @@ ggsave(paste(dir.out, "Dec2019Regions.png", sep=""), p)
 
 # export 
 write.csv(new_zips, paste(dir.out, "Dec2019_region_zips.csv", sep=""), row.names = FALSE)
+
+# r1sp<- read_csv("//orp-dc01/Users/ORP Operations/Fisheries Program/E-Reporting/4.0 Pilot projects/Data/FACTSdata/output/R1split/new_regions_r1split_3and4combo.csv")
+# any(!r1sp$zipcode %in% new_zips$Zip)
+# all(r1sp$zipcode %in% new_zips$Zip)
