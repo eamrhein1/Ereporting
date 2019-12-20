@@ -87,8 +87,9 @@ BRP_SumTbl = left_join(BRP_SumTbl, brp_address, by = "DNRID")
 
 BRP_SumTbl[is.na(BRP_SumTbl)] <- 0
 
-mutate(BRP_SumTbl, score = called + fsuccess + SH_error + SH_error2 + Address_error) %>%
+x = mutate(BRP_SumTbl, score = called + fsuccess + SH_error + SH_error2 + Address_error) %>%
   group_by(score) %>% summarise(n=n())
+print(x)
 
   
 
