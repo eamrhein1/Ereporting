@@ -11,6 +11,8 @@ library(readxl)
 library(tidyr)
 library(lubridate)
 library(utf8) #unsure whats up with this
+library(htmlTable)
+library(tableHTML)
 # -------------------- # 
 
 # -------------------- #
@@ -18,23 +20,31 @@ library(utf8) #unsure whats up with this
 # -------------------- # 
 dir.in = "//orp-dc01/Users/ORP Operations/Fisheries Program/E-Reporting/4.0 Pilot projects/Data/FACTSdata/rawdata/"
 dir.in2 = "//orp-dc01/Users/ORP Operations/Fisheries Program/E-Reporting/4.0 Pilot projects/Pilot Projects/Roving Monitor Pilot/Documentation/Resources for RMs/RM scheduling and priority lists/"
+dir.in3 = "//orp-dc01/Users/ORP Operations/Fisheries Program/E-Reporting/4.0 Pilot projects/Data/temp/"
 dir.out = "//orp-dc01/Users/ORP Operations/Fisheries Program/E-Reporting/4.0 Pilot projects/Data/FACTSdata/output/final_report_2019/"
 # -------------------- # 
 
 # -------------------- #
 # load data
 # -------------------- # 
+# regions
+source("U:/ORP Operations/Fisheries Program/E-Reporting/4.0 Pilot projects/Pilot Projects/Roving Monitor Pilot/code/importRegions.R")
+
 # load fishing data
 RM <- read_excel(paste(dir.in,"FACTSMD-684.xlsx", sep=""), sheet = 1)
 WM <- read_excel(paste(dir.in,"FACTSMD-684.xlsx", sep=""), sheet = 2)
 
 # rename
-names(RM) = c("TripID","MonitorReportNum","AssignedMonitor",
+names(RM) = c("TripID","DNRID","MonitorReportNum","AssignedMonitor",
               "ReportedBy","SpeciesGrade","Quantity","Unit",           
               "Comments","Result","Scheduled","CrewCount","Time")
+names(WM) = c("TripID","DNRID","WatermenName","License","Date",           
+               "SH","EH","SHSubmittedTime","EHSubmittedTime","SHLandingTime",  
+               "EHLandingTime","SHAddress","SHZip","EHAddress","EHZip",         
+               "CrewCount","Fishery","Gear","SpeciesGrade","Quantity","Unit")
 
 # take spaces out of names
-names(WM) = gsub(" ", "", names(WM), fixed = TRUE)
+#names(WM) = gsub(" ", "", names(WM), fixed = TRUE)
 
 # needs to be changed in the data
 RM = RM %>% mutate(AssignedMonitor = replace(AssignedMonitor, TripID %in% c(565820, 569269, 569582, 574640, 
@@ -44,14 +54,40 @@ RM = RM %>% mutate(AssignedMonitor = replace(AssignedMonitor, TripID %in% c(5658
                    AssignedMonitor = replace(AssignedMonitor, TripID %in% c(582379, 582924, 583278, 585968), "Steve Harris Womack"))
 # -------------------- #
 
+
+# -------------------- #
+# best reporting practices summary
+# -------------------- #
+source("U:/ORP Operations/Fisheries Program/E-Reporting/4.0 Pilot projects/Data/FACTSdata/code/BRP_final_report.R")
+# -------------------- #
+
+
 # -------------------- #
 # manipulate data
 # -------------------- # 
+# join fishery and name to RM based on trip ID
+RM = left_join(RM, dplyr::select(WM, TripID, Fishery, WatermenName, Date) %>% distinct, by = "TripID")
+
+# add regions
+WM = left_join(WM, mutate(zip_region_list, Zip = as.numeric(Zip)), by = c("EHZip" = "Zip")) %>% 
+  mutate(region = replace(region, is.na(region), "undefined"))
+RM = left_join(RM, dplyr::select(WM, TripID, region) %>% distinct, by = "TripID")
+
+attr(WM$Date, "tzone") <- "EST"
+attr(RM$Date, "tzone") <- "EST"
+RM = mutate(RM, Date = format(Date, format = "%Y-%m-%d"))
+
+WM = WM %>% filter(Date <= "2019-12-15 EST")
 # -------------------- #
+
+
 
 # -------------------- #
 # basic stats
 # -------------------- #
+# any turtle trips?
+length(unique(WM$TripID[!WM$Fishery %in% c("Blue Crab","Finfish")]))
+
 # number of RM trips
 length(unique(RM$TripID))
 
@@ -60,9 +96,6 @@ length(unique(WM$TripID))
 
 # portion of trips monitored
 (length(unique(RM$TripID))/length(unique(WM$TripID)))*100
-
-# join fishery to RM based on trip ID
-RM = left_join(RM, dplyr::select(WM, TripID, Fishery) %>% distinct, by = "TripID")
 
 # portion of trips monitored for FF
 (length(unique(RM$TripID[RM$Fishery %in% "Finfish"]))/length(unique(WM$TripID[WM$Fishery %in% "Finfish"])))*100
@@ -79,32 +112,195 @@ length(unique(RM$TripID[RM$Fishery %in% "Blue Crab"]))
 SuccessTbl = RM %>% dplyr::select(Result, TripID) %>% distinct 
 x = RM[RM$TripID %in% SuccessTbl$TripID[duplicated(SuccessTbl$TripID)],]
 
-RM %>% dplyr::select(Result, TripID, MonitorReportNum) %>% distinct %>% 
+SuccessTblSum = RM %>% dplyr::select(Result, TripID, MonitorReportNum) %>% distinct %>% 
   mutate(TripNum = paste(TripID, MonitorReportNum, sep="_")) %>%
   filter(!TripNum %in% paste(x$TripID, 1, sep="_")) %>% 
   mutate(Success = ifelse(Result %in% c("MONITORED","MONITORED (on paper)"),"Success","Fail")) %>% 
   group_by(Success) %>% summarize(n=n()) %>%
   mutate(perc = (n/(length(unique(RM$TripID))))*100)
+SuccessTblSum 
 
+# how many people made reports
+# how many people were attempted to be monitored
+# how many people were successfully monitored
+length(unique(WM$DNRID))
 
-# composed of __ % high, ___% medium, ___% low priority watermen.
-BCP_OctDec <- read_excel(paste(dir.in2,"ECrabPriority Oct-Dec.xlsx", sep=""))
-FFP_OctDec <- read_excel(paste(dir.in2,"EFishPriority Oct- Dec.xlsx", sep=""))
-R1P <- read_excel(paste(dir.in2,"Roving_Monitor_Priority_All_Lists_Region1_MaySept.xlsx", sep=""))
-R2P <- read_excel(paste(dir.in2,"Roving_Monitor_Priority_All_Lists_Region2_MaySept.xlsx", sep=""))
-R3P <- read_excel(paste(dir.in2,"Roving_Monitor_Priority_All_Lists_Region3_MaySept.xlsx", sep=""))
-R4P <- read_excel(paste(dir.in2,"Roving_Monitor_Priority_All_Lists_Region4_MaySept.xlsx", sep=""))
-R5P <- read_excel(paste(dir.in2,"Roving_Monitor_Priority_All_Lists_Region5_MaySept.xlsx", sep=""))
-R6P <- read_excel(paste(dir.in2,"Roving_Monitor_Priority_All_Lists_Region6_MaySept.xlsx", sep=""))
+length(unique(RM$DNRID))
+(length(unique(RM$DNRID))/length(unique(WM$DNRID)))*100
+
+length(unique(RM$DNRID[RM$Result %in% c("MONITORED (on paper)","MONITORED")]))
+(length(unique(RM$DNRID[RM$Result %in% c("MONITORED (on paper)","MONITORED")]))/length(unique(WM$DNRID)))*100
+
 
 # by region
-# Roving monitors attempted to monitor ___ trips in region 1 (n=__ available trips), 
-# ___ trips in region 2 (n = __ available trips_, 
-# ___trips in region 3 (n=___ available trips), 
-# ___ trips in region 4 (n=__ available trips), 
-# ___ trips in region 5 (n=__ available trips), 
-# and ___ trips in regions 6 (n=___available trips). 
+# Region	
+# Total Available Trips	
+# Attempted Trips Monitored	
+# Successful Trips Monitored	
+# Number of Available Watermen	
+# Number of Individual Watermen Monitored	
+# % High, % Medium. % Low Priority Ind. Attempted Monitored
+
+
+# ************************************************* #
+#####        CHECK MISSING REGION ZIPS        #######
+# ************************************************* #
+sort(unique(WM$EHZip[WM$region %in% "undefined"]))
+## added
+# 20625 - region 1
+# 21106 - region 2
+# 21624 - region 5
+# 21653 - region 5
+# 21664 - region 6
+# 21914 - region 3 
+# 19975 (DE)
+# 23423 (VA) 
+# 23427 (VA)
+# 22630 (VA)
+# 
+## unknown
+# 0 
+# 11111 
+# 11661 
+# 20600 
+# 21260 
+# 21428 
+# 29764
+
+# create table
+tripSummary = as.data.frame(matrix(data = NA, ncol=7, nrow=7))
+names(tripSummary) = c("Regions","AvailTrips","AttemptedTrips","SuccessfulTrips","AvailWM","AttemptedWM","SuccessfulWM")
+tripSummary$Regions = c("1","2","3","4","5","6","Total")
+tripSummary[tripSummary$Regions %in% "Total",2:7] = c(prettyNum(length(unique(WM$TripID)), big.mark = ","), 
+                                                  paste(formatC(length(unique(RM$TripID))/length(unique(WM$TripID))*100, digits = 3), "% (n = ", length(unique(RM$TripID)), ")", sep=""),
+                                                  paste(formatC((length(unique(RM$TripID[RM$Result %in% c("MONITORED (on paper)","MONITORED")]))/length(unique(WM$TripID)))*100, digits=3), 
+                                                        "% (n = ", length(unique(RM$TripID[RM$Result %in% c("MONITORED (on paper)","MONITORED")])), ")", sep=""),
+                                                  length(unique(WM$WatermenName)), 
+                                                  paste(formatC((length(unique(RM$DNRID))/length(unique(WM$DNRID)))*100, digits=4), 
+                                                        "% (n = ", length(unique(RM$DNRID)), ")", sep=""),
+                                                  paste(formatC((length(unique(RM$DNRID[RM$Result %in% c("MONITORED (on paper)","MONITORED")]))/length(unique(WM$DNRID)))*100, digits=4), 
+                                                        "% (n = ",length(unique(RM$DNRID[RM$Result %in% c("MONITORED (on paper)","MONITORED")])), ")", sep="")) 
+                                                  
+for(n in c(1:6)){
+  tripSummary$AvailTrips[n] = prettyNum(length(unique(WM$TripID[WM$region %in% n])), big.mark = ",")
+  tripSummary$AttemptedTrips[n] = paste(formatC(length(unique(RM$TripID[RM$region %in% n]))/length(unique(WM$TripID[WM$region %in% n]))*100, digits = 3), "% (n = ", length(unique(RM$TripID[RM$region %in% n])), ")", sep="")
+  tripSummary$SuccessfulTrips[n] = paste(formatC((length(unique(RM$TripID[RM$Result %in% c("MONITORED (on paper)","MONITORED") &RM$region %in% n]))/length(unique(WM$TripID[WM$region %in% n])))*100, digits=3), 
+                                      "% (n = ", length(unique(RM$TripID[RM$Result %in% c("MONITORED (on paper)","MONITORED") &RM$region %in% n])), ")", sep="")
+  tripSummary$AvailWM[n] = length(unique(WM$DNRID[WM$region %in% n]))
+  tripSummary$AttemptedWM[n] = paste(formatC((length(unique(RM$DNRID[RM$region %in% n]))/length(unique(WM$DNRID[WM$region %in% n])))*100, digits=4), 
+                                     "% (n = ", length(unique(RM$DNRID[RM$region %in% n])), ")", sep="")
+  tripSummary$SuccessfulWM[n] = paste(formatC((length(unique(RM$DNRID[RM$Result %in% c("MONITORED (on paper)","MONITORED") & RM$region %in% n]))/length(unique(WM$DNRID[WM$region %in% n])))*100, digits=4), 
+                                      "% (n = ",length(unique(RM$DNRID[RM$Result %in% c("MONITORED (on paper)","MONITORED") & RM$region %in% n])), ")", sep="") 
+}
+rm(n)
+  
+xTable =  htmlTable(tripSummary, rnames = FALSE,
+                    caption="Table 2. Trip Summary for Roving Monitors January to December 2019",
+                    header =  c("Region",
+                                "Total Available Trips",	
+                                "Attempted Trips Monitored",	
+                                "Successful Trips Monitored",	
+                                "Number of Available Watermen",	
+                                "Number of Individual Watermen Attempted to be Monitored",
+                                "Number of Individual Watermen Successfully Monitored"),
+                    n.rgroup = c(6,1),
+                    align = "lc",
+                    align.header = "lccc",
+                    css.cell = rbind(rep("font-size: 1.1em; padding-right: 0.6em", 
+                                         times=7), matrix("font-size: 1.1em; padding-right: 0.6em", ncol=7, nrow=7)),
+                    css.table = "margin-top: 1em; margin-bottom: 1em; table-layout: fixed; width: 1000px",
+                    total = "tspanner",
+                    css.total = c("border-top: 1px solid grey; font-weight: 900"),
+                    n.tspanner = c(nrow(tripSummary)))
+xTable 
+
+write.table(xTable, 
+            file=paste(dir.out, "Table2.html",sep=""), 
+            quote = FALSE,
+            col.names = FALSE,
+            row.names = FALSE)
 # -------------------- #
+
+
+# -------------------- #
+# trips available in time block when RM was working
+# -------------------- #
+#RM = RM %>% mutate(hr = hour(Time))
+
+#import Ryan's work table (edited by Carly)
+RM_Schedules <- read_excel("//orp-dc01/Users/ORP Operations/Fisheries Program/E-Reporting/4.0 Pilot projects/Pilot Projects/Roving Monitor Pilot/Documentation/Final Report/RM Schedules - CT.xlsx")
+#RM_Schedules$EndHour[RM_Schedules$twohrShift %in% "Y"] = RM_Schedules$StartHour[RM_Schedules$twohrShift %in% "Y"] + 2
+RM_Schedules = mutate(RM_Schedules, 
+                      StartHour = as.POSIXct(paste(paste(Date, StartHour, sep = " "), "00:00", sep=":"), format = "%Y-%m-%d %H:%M:%S", tz = "EST"),
+                      EndHour = as.POSIXct(paste(paste(Date, EndHour, sep = " "), "00:00", sep=":"), format = "%Y-%m-%d %H:%M:%S", tz = "EST")) %>% 
+  filter(!twohrShift %in% "Y") #%>% 
+  #mutate(Region = replace(Region, Region %in% c("1A","1B")))
+
+# find landing times that occurred in the time block
+r1split = read.csv("//orp-dc01/Users/ORP Operations/Fisheries Program/E-Reporting/4.0 Pilot projects/Data/FACTSdata/output/R1split/new_regions_r1split_3and4combo.csv")
+r1split = r1split %>% filter(region %in% c("1a","1b"))
+  
+finalLT = WM %>% dplyr::select(TripID, SH, EH, EHLandingTime, Date, region, EHZip) %>% 
+  distinct() %>% 
+  group_by(TripID) %>%
+  mutate(lastH = ifelse(SH %in% max(SH) & EH %in% max(EH), "yes","no")) %>%
+  filter(lastH %in% "yes") %>% ungroup() %>%
+  mutate(time = sapply(strsplit(as.character(EHLandingTime), " "), tail, 1),
+         landingtime = as.POSIXct(paste(Date, time, sep = " "), format = "%Y-%m-%d %H:%M:%S")) %>%
+  dplyr::select(-SH,-EH,-lastH,-time,-EHLandingTime) %>%
+  rename(zipcode = EHZip) %>%
+  left_join(., filter(r1split, region %in% "1a") %>% mutate(region = "1A") %>% rename(r1a = region), by = "zipcode") %>% 
+  left_join(., filter(r1split, region %in% "1b") %>% mutate(region = "1B") %>% rename(r1b = region), by = "zipcode") 
+rm(r1split)
+# correct for r1 split
+finalLT$region[finalLT$region %in% 1 & 
+                 finalLT$Date >= min(RM_Schedules$Date[RM_Schedules$Region %in% "1B"]) & 
+                 finalLT$Date <= max(RM_Schedules$Date[RM_Schedules$Region %in% "1B"]) &
+                 finalLT$r1b %in% "1B"] = "1b"
+finalLT$region[finalLT$region %in% 1 & 
+                 finalLT$Date >= min(RM_Schedules$Date[RM_Schedules$Region %in% "1A"]) & 
+                 finalLT$Date <= max(RM_Schedules$Date[RM_Schedules$Region %in% "1A"]) &
+                 finalLT$r1a %in% "1A"] = "1a"
+
+in.time.block <- function(x){
+  y = finalLT %>% filter(region %in% x$Region,
+                    landingtime > x$StartHour,
+                    landingtime < x$EndHour) %>%
+    summarise(n=n())
+  return(y$n)
+}
+
+RM_Schedules$Ntrips = NA
+for(a in 1:dim(RM_Schedules)[1]){
+  RM_Schedules$Ntrips[a] = in.time.block(RM_Schedules[a,])
+}
+
+# -------------------- #
+
+
+# -------------------- #
+# composed of __ % high, ___% medium, ___% low priority watermen.
+# -------------------- #
+BCP_OctDec <- read_excel(paste(dir.in2,"ECrabPriority Oct-Dec.xlsx", sep="")) %>% 
+  dplyr::select(License, Priority) %>% mutate(startMo = 10, endMo = 12, Fishery = "Blue Crab")
+FFP_OctDec <- read_excel(paste(dir.in2,"EFishPriority Oct- Dec.xlsx", sep="")) %>% 
+  dplyr::select(License, Priority) %>% mutate(startMo = 10, endMo = 12, Fishery = "Finfish")
+R1P1 <- read_excel(paste(dir.in3,"Roving_Monitor_Priority_All_Lists_Region1_MaySept.xlsx", sep=""), sheet1) %>% 
+  dplyr::select(DNRid, Monitoring) %>% mutate(startMo = 5, endMo = 6, Fishery = "Finfish")
+R1P2 <- read_excel(paste(dir.in3,"Roving_Monitor_Priority_All_Lists_Region1_MaySept.xlsx", sep=""), sheet2) %>% 
+  dplyr::select(DNRid, Monitoring) %>% mutate(startMo = 7, endMo = 9, Fishery = "Finfish")
+R1P3 <- read_excel(paste(dir.in3,"Roving_Monitor_Priority_All_Lists_Region1_MaySept.xlsx", sep=""), sheet3) %>% 
+  dplyr::select(DNRid, Monitoring) %>% mutate(startMo = 4, endMo = 6, Fishery = "Blue Crab")
+R1P4 <- read_excel(paste(dir.in3,"Roving_Monitor_Priority_All_Lists_Region1_MaySept.xlsx", sep=""), sheet4) %>% 
+  dplyr::select(DNRid, Monitoring) %>% mutate(startMo = 7, endMo = 9, Fishery = "Blue Crab")
+
+
+R2P <- read_excel(paste(dir.in3,"Roving_Monitor_Priority_All_Lists_Region2_MaySept.xlsx", sep=""))
+R3P <- read_excel(paste(dir.in3,"Roving_Monitor_Priority_All_Lists_Region3_MaySept.xlsx", sep=""))
+R4P <- read_excel(paste(dir.in3,"Roving_Monitor_Priority_All_Lists_Region4_MaySept.xlsx", sep=""))
+R5P <- read_excel(paste(dir.in3,"Roving_Monitor_Priority_All_Lists_Region5_MaySept.xlsx", sep=""))
+R6P <- read_excel(paste(dir.in3,"Roving_Monitor_Priority_All_Lists_Region6_MaySept.xlsx", sep=""))
+
 
 # -------------------- #
 # catch comparison
