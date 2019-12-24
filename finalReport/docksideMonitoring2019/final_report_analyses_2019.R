@@ -52,6 +52,12 @@ RM = RM %>% mutate(AssignedMonitor = replace(AssignedMonitor, TripID %in% c(5658
                                                                             566638, 584714, 584748, 584813, 
                                                                             588244), "Becky Rusteberg K"),
                    AssignedMonitor = replace(AssignedMonitor, TripID %in% c(582379, 582924, 583278, 585968), "Steve Harris Womack"))
+# correct data
+RM$Quantity[RM$TripID %in% 596007 & RM$SpeciesGrade %in% "FEMALES"] = 16
+RM$Quantity[RM$TripID %in% 596007 & RM$SpeciesGrade %in% "MIXED MALES"] = 2
+
+RM$Quantity[RM$TripID %in% 606012 & RM$SpeciesGrade %in% "PEELERS"] = 20
+RM$Quantity[RM$TripID %in% 606012 & RM$SpeciesGrade %in% "SOFT SHELL"] = 2
 # -------------------- #
 
 
@@ -73,9 +79,9 @@ WM = left_join(WM, mutate(zip_region_list, Zip = as.numeric(Zip)), by = c("EHZip
   mutate(region = replace(region, is.na(region), "undefined"))
 RM = left_join(RM, dplyr::select(WM, TripID, region) %>% distinct, by = "TripID")
 
-attr(WM$Date, "tzone") <- "EST"
-attr(RM$Date, "tzone") <- "EST"
-RM = mutate(RM, Date = format(Date, format = "%Y-%m-%d"))
+# attr(WM$Date, "tzone") <- "EST"
+# attr(RM$Date, "tzone") <- "EST"
+RM3 = mutate(RM, Date = as.Date(as.character(Date), format = "%m/%d/%Y"))
 
 WM = WM %>% filter(Date <= "2019-12-15 EST")
 # -------------------- #
@@ -305,5 +311,109 @@ R6P <- read_excel(paste(dir.in3,"Roving_Monitor_Priority_All_Lists_Region6_MaySe
 # -------------------- #
 # catch comparison
 # -------------------- #
+# Crab only first since it should be less complicated
+# fish can have mult. rows for same species due to different dispositions 
+finalEH = WM %>% filter(Fishery %in% "Blue Crab") %>% 
+  dplyr::select(TripID, EH, SpeciesGrade, Quantity, Unit) %>% 
+  distinct() %>% 
+  group_by(TripID) %>%
+  mutate(lastH = ifelse(EH %in% max(EH), "yes","no")) %>%
+  filter(lastH %in% "yes") %>% ungroup() %>% 
+  dplyr::select(-EH, -lastH) %>% 
+  rename(WM_spp = SpeciesGrade, WM_quant = Quantity, WM_unit = Unit)
 
+cc = RM %>% filter(Fishery %in% "Blue Crab") %>% 
+  dplyr::select(TripID, AssignedMonitor, SpeciesGrade, Quantity, Unit, Result, MonitorReportNum) %>%
+  filter(Result %in% c("MONITORED", "MONITORED (on paper)")) %>%
+  group_by(TripID) %>%
+  mutate(lastR = ifelse(MonitorReportNum %in% max(MonitorReportNum), "yes","no")) %>%
+  filter(lastR %in% "yes") %>% ungroup() %>% 
+  dplyr::select(-MonitorReportNum, -lastR) %>%
+  distinct() %>%
+  inner_join(., finalEH, by=c('TripID'='TripID','SpeciesGrade'='WM_spp')) %>% 
+  filter(as.character(Unit) == as.character(WM_unit)) %>%
+  mutate(QuantDiff = Quantity - WM_quant)
+
+# ggplot() + geom_histogram(data = filter(cc, Unit %in% "BUSHELS"), aes(x = QuantDiff), stat = "count")
+# 
+# ggplot() + geom_histogram(data = filter(cc, Unit %in% "EACH"), aes(x = QuantDiff), stat = "count")
+# 
+# ggplot() + geom_histogram(data = filter(cc, Unit %in% "POUNDS"), aes(x = QuantDiff), stat = "count")
+# 
+# p = ggplot() + geom_boxplot(data = cc, aes(x = SpeciesGrade, y = QuantDiff)) +
+#   theme_bw() + 
+#   labs(x = "Blue Crab Grade", y = "Roving Monitor Quantity - Waterman Quantity Reported")
+# p
+# ggsave(paste(dir.out, "BC_cc.png", sep=""), p)
+
+p = ggplot() + geom_boxplot(data = filter(cc, QuantDiff < 100 & QuantDiff > (-49)), aes(x = SpeciesGrade, y = QuantDiff)) +
+  theme_bw() + 
+  labs(x = "Blue Crab Grade", y = "Roving Monitor Quantity - Waterman Quantity Reported")
+p
+ggsave(paste(dir.out, "BC_cc.png", sep=""), p)
+
+# fish
+finalEH = WM %>% filter(Fishery %in% "Finfish") %>% 
+  dplyr::select(TripID, EH, SpeciesGrade, Quantity, Unit) %>% 
+  distinct() %>% 
+  group_by(TripID) %>%
+  mutate(lastH = ifelse(EH %in% max(EH), "yes","no")) %>%
+  filter(lastH %in% "yes") %>% ungroup() %>% 
+  dplyr::select(-EH, -lastH) %>% 
+  rename(WM_spp = SpeciesGrade, WM_quant = Quantity, WM_unit = Unit) %>% 
+  group_by(TripID, WM_spp) %>%
+  summarise(WM_quant = sum(WM_quant), WM_unit = first(WM_unit), WM_nd = n_distinct(WM_unit))
+
+cc = RM %>% filter(Fishery %in% "Finfish") %>% 
+  dplyr::select(TripID, AssignedMonitor, SpeciesGrade, Quantity, Unit, Result, MonitorReportNum) %>%
+  filter(Result %in% c("MONITORED", "MONITORED (on paper)")) %>%
+  group_by(TripID) %>%
+  mutate(lastR = ifelse(MonitorReportNum %in% max(MonitorReportNum), "yes","no")) %>%
+  filter(lastR %in% "yes") %>% ungroup() %>% 
+  dplyr::select(-MonitorReportNum, -lastR) %>%
+  group_by(TripID, SpeciesGrade) %>%
+  summarise(Quantity = sum(Quantity), Unit = first(Unit), nd = n_distinct(Unit)) %>%
+  inner_join(., finalEH, by=c('TripID'='TripID','SpeciesGrade'='WM_spp')) %>% 
+  #filter(as.character(Unit) == as.character(WM_unit)) %>%
+  mutate(QuantDiff = Quantity - WM_quant)
+
+p = ggplot() + geom_boxplot(data = cc, aes(x = SpeciesGrade, y = QuantDiff)) +
+  theme_bw() + 
+  labs(x = "Species", y = "Roving Monitor Quantity - Waterman Quantity Reported")
+p
+ggsave(paste(dir.out, "FF_cc.png", sep=""), p)
+
+# -------------------- #
+
+
+# -------------------- #
+# effort comparisson
+# -------------------- #
+finalEH = WM %>% dplyr::select(TripID, EH, CrewCount) %>% 
+  distinct() %>% 
+  group_by(TripID) %>%
+  mutate(lastH = ifelse(EH %in% max(EH), "yes","no")) %>%
+  filter(lastH %in% "yes") %>% ungroup() %>% 
+  dplyr::select(-EH, -lastH) %>%
+  distinct() 
+
+ec = RM %>% dplyr::select(TripID, AssignedMonitor,CrewCount, MonitorReportNum, Result) %>%
+  filter(Result %in% c("MONITORED", "MONITORED (on paper)")) %>%
+  group_by(TripID) %>%
+  mutate(lastR = ifelse(MonitorReportNum %in% max(MonitorReportNum), "yes","no")) %>%
+  filter(lastR %in% "yes") %>% ungroup() %>% 
+  dplyr::select(-MonitorReportNum, -lastR) %>%
+  distinct() %>%
+  inner_join(., finalEH, by="TripID") %>%
+  mutate(crewdiff = CrewCount.x - CrewCount.y)
+
+ec %>% group_by(crewdiff) %>% summarise(n=n())
+
+ec %>% mutate(crewdiff = ifelse(crewdiff > 0 | crewdiff < 0, "wrong", crewdiff)) %>% group_by(crewdiff) %>% summarise(n=n())
+
+ec %>% mutate(crewdiff = ifelse(crewdiff > 0, "over", crewdiff),
+              crewdiff = ifelse(crewdiff < 0, "under", crewdiff)) %>% 
+  group_by(crewdiff) %>% summarise(n=n())
+
+any(duplicated(ec$TripID))
 # -------------------- #
