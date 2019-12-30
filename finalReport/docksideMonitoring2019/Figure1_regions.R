@@ -5,7 +5,7 @@ library(ggmap)
 # al1MAP = ggmap(al1)
 # al1MAP
 
-source("U:/ORP Operations/Fisheries Program/E-Reporting/4.0 Pilot projects/Roving Monitor Pilot/code/importRegions.R")
+source("U:/ORP Operations/Fisheries Program/E-Reporting/4.0 Pilot projects/Pilot Projects/Roving Monitor Pilot/code/importRegions.R")
 
 trueCentroids = mutate(trueCentroids, region = paste("Region ", region, sep = ""))
 
