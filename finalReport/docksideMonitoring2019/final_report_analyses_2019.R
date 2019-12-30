@@ -36,12 +36,13 @@ WM <- read_excel(paste(dir.in,"FACTSMD-684.xlsx", sep=""), sheet = 2)
 
 # rename
 names(RM) = c("TripID","DNRID","MonitorReportNum","AssignedMonitor",
-              "ReportedBy","SpeciesGrade","Quantity","Unit",           
+              "ReportedBy","SpeciesGrade","Quantity","Unit", "Count",          
               "Comments","Result","Scheduled","CrewCount","Time")
 names(WM) = c("TripID","DNRID","WatermenName","License","Date",           
-               "SH","EH","SHSubmittedTime","EHSubmittedTime","SHLandingTime",  
-               "EHLandingTime","SHAddress","SHZip","EHAddress","EHZip",         
-               "CrewCount","Fishery","Gear","SpeciesGrade","Quantity","Unit")
+              "SH","EH","SHSubmittedTime","EHSubmittedTime","SHLandingTime",  
+              "EHLandingTime","SHAddress","SHZip","EHAddress","EHZip",         
+              "CrewCount","Fishery","Gear","SpeciesGrade","Quantity",
+              "Unit", "Count")
 
 # take spaces out of names
 #names(WM) = gsub(" ", "", names(WM), fixed = TRUE)
@@ -352,7 +353,20 @@ p = ggplot() + geom_boxplot(data = filter(cc, QuantDiff < 100 & QuantDiff > (-49
 p
 ggsave(paste(dir.out, "BC_cc.png", sep=""), p)
 
+# ---------- #
 # fish
+# ---------- #
+
+# ------ #
+# quantity
+# ------ #
+
+# load comments so filter out those that are half reported
+# currently loading comments through google spreadsheet
+names(comments) = gsub(" ", "", as.character(unlist(as.list(comments[1,]))), fixed = TRUE)
+comments = comments[-1,]
+harvest_com_tripID = sort(unique(comments$TripID))
+
 finalEH = WM %>% filter(Fishery %in% "Finfish") %>% 
   dplyr::select(TripID, EH, SpeciesGrade, Quantity, Unit) %>% 
   distinct() %>% 
@@ -364,7 +378,8 @@ finalEH = WM %>% filter(Fishery %in% "Finfish") %>%
   group_by(TripID, WM_spp) %>%
   summarise(WM_quant = sum(WM_quant), WM_unit = first(WM_unit), WM_nd = n_distinct(WM_unit))
 
-cc = RM %>% filter(Fishery %in% "Finfish") %>% 
+cc = RM %>% filter(Fishery %in% "Finfish",
+                   !AssignedMonitor %in% "Max Ruehrmund") %>% 
   dplyr::select(TripID, AssignedMonitor, SpeciesGrade, Quantity, Unit, Result, MonitorReportNum) %>%
   filter(Result %in% c("MONITORED", "MONITORED (on paper)")) %>%
   group_by(TripID) %>%
@@ -377,12 +392,56 @@ cc = RM %>% filter(Fishery %in% "Finfish") %>%
   #filter(as.character(Unit) == as.character(WM_unit)) %>%
   mutate(QuantDiff = Quantity - WM_quant)
 
+x = cc[cc$TripID %in% harvest_com_tripID,] %>% 
+  left_join(., mutate(comments, TripID = as.integer(TripID)) %>% dplyr::select(TripID, Comments), by = "TripID")
+
+cc = filter(cc, !TripID %in% c(533729, 534206, 534750, 535203, 535245))
+
 p = ggplot() + geom_boxplot(data = cc, aes(x = SpeciesGrade, y = QuantDiff)) +
   theme_bw() + 
+  theme(text = element_text(size=12),
+        axis.text.x = element_text(angle = 45, hjust = 1))+
   labs(x = "Species", y = "Roving Monitor Quantity - Waterman Quantity Reported")
 p
 ggsave(paste(dir.out, "FF_cc.png", sep=""), p)
 
+
+# ------ #
+# count
+# ------ #
+finalEH = WM %>% filter(Fishery %in% "Finfish") %>% 
+  dplyr::select(TripID, EH, SpeciesGrade, Count) %>% 
+  distinct() %>% 
+  group_by(TripID) %>%
+  mutate(lastH = ifelse(EH %in% max(EH), "yes","no")) %>%
+  filter(lastH %in% "yes") %>% ungroup() %>% 
+  dplyr::select(-EH, -lastH) %>% 
+  rename(WM_spp = SpeciesGrade, WM_count = Count, WM_unit = Unit) %>% 
+  group_by(TripID, WM_spp) %>%
+  summarise(WM_count = sum(WM_count))
+
+cc = RM %>% filter(Fishery %in% "Finfish",
+                   !AssignedMonitor %in% "Max Ruehrmund") %>% 
+  dplyr::select(TripID, AssignedMonitor, SpeciesGrade, Count, Result, MonitorReportNum) %>%
+  filter(Result %in% c("MONITORED", "MONITORED (on paper)")) %>%
+  group_by(TripID) %>%
+  mutate(lastR = ifelse(MonitorReportNum %in% max(MonitorReportNum), "yes","no")) %>%
+  filter(lastR %in% "yes") %>% ungroup() %>% 
+  dplyr::select(-MonitorReportNum, -lastR) %>%
+  group_by(TripID, SpeciesGrade) %>%
+  summarise(Count = sum(Count)) %>%
+  inner_join(., finalEH, by=c('TripID'='TripID','SpeciesGrade'='WM_spp')) %>% 
+  mutate(CountDiff = Count - WM_count) %>%
+  filter(!is.na(CountDiff))
+
+cc = filter(cc, !TripID %in% c(533992, 534123))
+
+p = ggplot() + geom_boxplot(data = cc, aes(x = SpeciesGrade, y = CountDiff)) +
+  theme_bw() + 
+  theme(text = element_text(size=15))+
+  labs(x = "Species", y = "Roving Monitor Count - Waterman Count Reported")
+p
+ggsave(paste(dir.out, "FF_count_cc.png", sep=""), p)
 # -------------------- #
 
 
