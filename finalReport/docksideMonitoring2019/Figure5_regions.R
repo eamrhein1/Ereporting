@@ -77,7 +77,7 @@ p2
 # # export
 # #--------------------- #
 # dir.out = "U:/ORP Operations/Fisheries Program/E-Reporting/4.0 Pilot projects/FACTSdata/output/final_report_2019/"
-# ggsave(paste(dir.out, "Figure3_regions_googlemap.png", sep = ""), p2)
+# ggsave(paste(dir.out, "Figure5_regions_googlemap.png", sep = ""), p2)
 # #--------------------- #
 
 # had to save manually
