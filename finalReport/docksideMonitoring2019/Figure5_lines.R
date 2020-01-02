@@ -1,4 +1,4 @@
-# Figure 4. Trips per month per region
+# Figure 5. Trips per month per region
 
 tmp = WM %>% mutate(mo = month(Date)) %>% dplyr::select(mo, TripID, region) %>% 
   filter(!region %in% "undefined") %>%
