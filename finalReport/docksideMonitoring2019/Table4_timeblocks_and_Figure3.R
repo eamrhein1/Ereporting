@@ -4,8 +4,11 @@
 # 11 to 17
 # 15 to 21
 # ------------------------ #
-tmp = WM %>% dplyr::select(TripID, EHLandingTime, region, Date, Fishery) %>%
-  distinct() %>%
+tmp = WM %>% dplyr::select(TripID, SH, EH, EHLandingTime, region, Date, Fishery) %>%
+  distinct() %>% 
+  group_by(TripID) %>%
+  mutate(lastH = ifelse(SH %in% max(SH) & EH %in% max(EH), "yes","no")) %>%
+  filter(lastH %in% "yes") %>% ungroup() %>%
   mutate(hr = hour(EHLandingTime),
          mo = month(Date)) 
 
@@ -19,7 +22,9 @@ tbs = as.data.frame(as.matrix(rbind(hrs %>% filter(hr %in% c(7:13)) %>% summariz
                                     hrs %>% filter(hr %in% c(7:21)) %>% summarize(sum(n)),
                                     hrs %>% filter(!hr %in% c(7:21)) %>% summarize(sum(n)))))
 names(tbs) = c("n")
-tbs$perc = formatC((tbs$n/length(unique(WM$TripID))*100), digits = 4)
+tbs$perc = NA
+tbs$perc[1:4] = formatC((tbs$n[1:4]/length(unique(WM$TripID))*100), digits = 4)
+tbs$perc[5] = formatC((tbs$n[5]/length(unique(WM$TripID))*100), digits = 3)
 
 hrs = group_by(tmp, hr, Fishery) %>% 
   summarise(n=n()) %>% 
@@ -31,7 +36,9 @@ tbs_BC = as.data.frame(as.matrix(rbind(hrs %>% filter(hr %in% c(7:13) & Fishery 
                                     hrs %>% filter(hr %in% c(7:21) & Fishery %in% c("Blue Crab")) %>% summarize(sum(n)),
                                     hrs %>% filter(!hr %in% c(7:21) & Fishery %in% c("Blue Crab")) %>% summarize(sum(n)))))
 names(tbs_BC) = c("n")
-tbs_BC$perc = formatC((tbs_BC$n/length(unique(WM$TripID[WM$Fishery %in% "Blue Crab"]))*100), digits = 4)
+tbs_BC$perc = NA
+tbs_BC$perc[1:4] = formatC((tbs_BC$n[1:4]/length(unique(WM$TripID[WM$Fishery %in% "Blue Crab"]))*100), digits = 4)
+tbs_BC$perc[5] = formatC((tbs_BC$n[5]/length(unique(WM$TripID[WM$Fishery %in% "Blue Crab"]))*100), digits = 3)
 
 tbs_FF = as.data.frame(as.matrix(rbind(hrs %>% filter(hr %in% c(7:13) & Fishery %in% c("Finfish")) %>% summarize(sum(n)),
                                        hrs %>% filter(hr %in% c(11:17) & Fishery %in% c("Finfish")) %>% summarize(sum(n)),
@@ -39,12 +46,42 @@ tbs_FF = as.data.frame(as.matrix(rbind(hrs %>% filter(hr %in% c(7:13) & Fishery 
                                        hrs %>% filter(hr %in% c(7:21) & Fishery %in% c("Finfish")) %>% summarize(sum(n)),
                                        hrs %>% filter(!hr %in% c(7:21) & Fishery %in% c("Finfish")) %>% summarize(sum(n)))))
 names(tbs_FF) = c("n")
-tbs_FF$perc = formatC((tbs_FF$n/length(unique(WM$TripID[WM$Fishery %in% "Finfish"]))*100), digits = 4)
+tbs_FF$perc = NA
+tbs_FF$perc[1:4] = formatC((tbs_FF$n[1:4]/length(unique(WM$TripID[WM$Fishery %in% "Finfish"]))*100), digits = 4)
+tbs_FF$perc[5] = formatC((tbs_FF$n[5]/length(unique(WM$TripID[WM$Fishery %in% "Finfish"]))*100), digits = 3)
 
 
-tripSum = as.data.frame(as.matrix(cbind(paste(tbs$perc, " (n = ", tbs$n,")", sep = ""),
-                                        paste(tbs_BC$perc, " (n = ", tbs_BC$n,")", sep = ""),
-                                        paste(tbs_FF$perc, " (n = ", tbs_FF$n,")", sep = ""))))
+tripSum = as.data.frame(as.matrix(cbind(c("7 a.m. - 1 p.m.","11 a.m. - 5 p.m.","3 - 9 p.m.","in block","out of block"),
+                                        paste(tbs$perc, "% (n = ", prettyNum(tbs$n, big.mark = ","), ")", sep = ""),
+                                        paste(tbs_BC$perc, "% (n = ", prettyNum(tbs_BC$n, big.mark = ","),")", sep = ""),
+                                        paste(tbs_FF$perc, "% (n = ", prettyNum(tbs_FF$n, big.mark = ","),")", sep = ""))))
+names(tripSum) = c("block", "TotalPerc","BCPrec","FFPrec")
+
+
+xTable = htmlTable(tripSum, rnames = FALSE,
+                   caption="Table 4. Percent of trips from January to December in 2019 by time block",
+                   header =  c("Time block",
+                               "All Trips",
+                               "Blue Crab Trips",
+                               "Finfish Trips"),
+                   rgroup = c("By block",
+                              "Summary"),
+                   n.rgroup = c(3,2),
+                   align = "lc",
+                   align.header = "lccc",
+                   css.cell = rbind(rep("font-size: 1.3em; padding-right: 0.5em", 
+                                        times=4), matrix("font-size: 1.2em; padding-right: 0.5em", ncol=4, nrow=5)),
+                   css.rgroup = "font-weight: 800; font-size: 1.2em;", 
+                   css.rgroup.sep = "",
+                   css.table = "margin-top: 1em; margin-bottom: 1em; table-layout: fixed; width: 800px;")
+xTable 
+
+write.table(xTable, 
+            file=paste(dir.out, "TimeBlock2019.html",sep=""), 
+            quote = FALSE,
+            col.names = FALSE,
+            row.names = FALSE)
+
 rm(tbs, tbs_BC, tbs_FF)
 
 # ---- #
