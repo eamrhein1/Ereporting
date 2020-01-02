@@ -85,34 +85,21 @@ xxx = RM3 %>% dplyr::select(region, TripID, Result) %>% distinct() %>%
 tripSummary$SuccessfulTrips[1:6] = paste(formatC((xxx$n/x$n)*100,digits = 4),"% (n = ",xxx$n,")", sep = "")
 
 tripSummary[tripSummary$Regions %in% "Total",2:7] = c(prettyNum(sum(RM_Schedules$Ntrips), big.mark = ","), 
-                                                      prettyNum(sum(xx$n), big.mark = ","),
-                                                      prettyNum(sum(xxx$n), big.mark = ","),
+                                                      paste(formatC((sum(xx$n)/sum(RM_Schedules$Ntrips))*100, digits = 4), "% (n = ",prettyNum(sum(xx$n), big.mark = ","), ")", sep = ""),
+                                                      paste(formatC((sum(xxx$n)/sum(RM_Schedules$Ntrips))*100, digits = 4), "% (n = ",prettyNum(sum(xxx$n), big.mark = ","), ")", sep = ""),
                                                       NA,
                                                       NA,
                                                       NA) 
 
-for(n in c(1:6)){
-  tripSummary$AvailTrips[n] = prettyNum(length(unique(WM$TripID[WM$region %in% n])), big.mark = ",")
-  tripSummary$AttemptedTrips[n] = paste(formatC(length(unique(RM$TripID[RM$region %in% n]))/length(unique(WM$TripID[WM$region %in% n]))*100, digits = 3), "% (n = ", length(unique(RM$TripID[RM$region %in% n])), ")", sep="")
-  tripSummary$SuccessfulTrips[n] = paste(formatC((length(unique(RM$TripID[RM$Result %in% c("MONITORED (on paper)","MONITORED") &RM$region %in% n]))/length(unique(WM$TripID[WM$region %in% n])))*100, digits=3), 
-                                         "% (n = ", length(unique(RM$TripID[RM$Result %in% c("MONITORED (on paper)","MONITORED") &RM$region %in% n])), ")", sep="")
-  tripSummary$AvailWM[n] = length(unique(WM$DNRID[WM$region %in% n]))
-  tripSummary$AttemptedWM[n] = paste(formatC((length(unique(RM$DNRID[RM$region %in% n]))/length(unique(WM$DNRID[WM$region %in% n])))*100, digits=4), 
-                                     "% (n = ", length(unique(RM$DNRID[RM$region %in% n])), ")", sep="")
-  tripSummary$SuccessfulWM[n] = paste(formatC((length(unique(RM$DNRID[RM$Result %in% c("MONITORED (on paper)","MONITORED") & RM$region %in% n]))/length(unique(WM$DNRID[WM$region %in% n])))*100, digits=4), 
-                                      "% (n = ",length(unique(RM$DNRID[RM$Result %in% c("MONITORED (on paper)","MONITORED") & RM$region %in% n])), ")", sep="") 
-}
-rm(n)
-
 xTable =  htmlTable(tripSummary, rnames = FALSE,
-                    caption="Table 2. Trip Summary for Roving Monitors January to December 2019",
+                    caption="Table 3. Trip Summary for Roving Monitors January to December 2019 within Time Blocks",
                     header =  c("Region",
                                 "Total Available Trips",	
-                                "Attempted Trips Monitored",	
+                                "Attempted Trips",	
                                 "Successful Trips Monitored",	
-                                "Number of Available Watermen",	
-                                "Number of Individual Watermen Attempted to be Monitored",
-                                "Number of Individual Watermen Successfully Monitored"),
+                                "Num. of Available Watermen",	
+                                "Num. of Ind. Watermen Attempted to be Monitored",
+                                "Num. of Ind. Watermen Successfully Monitored"),
                     n.rgroup = c(6,1),
                     align = "lc",
                     align.header = "lccc",
@@ -125,7 +112,9 @@ xTable =  htmlTable(tripSummary, rnames = FALSE,
 xTable 
 
 write.table(xTable, 
-            file=paste(dir.out, "Table2.html",sep=""), 
+            file=paste(dir.out, "Table3_TripSumInTBs.html",sep=""), 
             quote = FALSE,
             col.names = FALSE,
             row.names = FALSE)
+
+rm(RM3, TripSummary)
