@@ -16,7 +16,7 @@ RM_Schedules = mutate(RM_Schedules,
 r1split = read.csv("//orp-dc01/Users/ORP Operations/Fisheries Program/E-Reporting/4.0 Pilot projects/Data/FACTSdata/output/R1split/new_regions_r1split_3and4combo.csv")
 r1split = r1split %>% filter(region %in% c("1a","1b"))
 
-finalLT = WM %>% dplyr::select(TripID, SH, EH, EHLandingTime, Date, region, EHZip) %>% 
+finalLT = WM %>% dplyr::select(TripID, SH, EH, EHLandingTime, Date, region, EHZip, DNRID) %>% 
   distinct() %>% 
   group_by(TripID) %>%
   mutate(lastH = ifelse(SH %in% max(SH) & EH %in% max(EH), "yes","no")) %>%
@@ -47,10 +47,26 @@ in.time.block <- function(x){
   return(y$n)
 }
 
+
+# WM.in.time.block <- function(x){
+#   y = finalLT %>% filter(region %in% x$Region,
+#                          landingtime > x$StartHour,
+#                          landingtime < x$EndHour) %>%
+#     group_by(DNRID) %>%
+#     summarise(n=n()) %>% n_distinct()
+#   return(y$n)
+# }
+# 
+
 RM_Schedules$Ntrips = NA
 for(a in 1:dim(RM_Schedules)[1]){
   RM_Schedules$Ntrips[a] = in.time.block(RM_Schedules[a,])
 }
+
+# RM_Schedules$numWM = NA
+# for(a in 1:dim(RM_Schedules)[1]){
+#   RM_Schedules$numWM[a] = WM.in.time.block(RM_Schedules[a,])
+# }
 
 # correct RM data for r1split
 RM3 = RM %>%  
@@ -68,8 +84,8 @@ RM3$region[RM3$region %in% 1 &
 
 
 # create table
-tripSummary = as.data.frame(matrix(data = NA, ncol=7, nrow=7))
-names(tripSummary) = c("Regions","AvailTrips","AttemptedTrips","SuccessfulTrips","AvailWM","AttemptedWM","SuccessfulWM")
+tripSummary = as.data.frame(matrix(data = NA, ncol=4, nrow=7))
+names(tripSummary) = c("Regions","AvailTrips","AttemptedTrips","SuccessfulTrips")
 tripSummary$Regions = c("1","1a","1b","2","5","6","Total")
 
 x = RM_Schedules %>% group_by(Region) %>% summarise(n=sum(Ntrips))
@@ -84,28 +100,22 @@ xxx = RM3 %>% dplyr::select(region, TripID, Result) %>% distinct() %>%
   group_by(region) %>% summarise(n=n()) %>% filter(!region %in% c(3,4,NA))
 tripSummary$SuccessfulTrips[1:6] = paste(formatC((xxx$n/x$n)*100,digits = 4),"% (n = ",xxx$n,")", sep = "")
 
-tripSummary[tripSummary$Regions %in% "Total",2:7] = c(prettyNum(sum(RM_Schedules$Ntrips), big.mark = ","), 
+tripSummary[tripSummary$Regions %in% "Total",2:4] = c(prettyNum(sum(RM_Schedules$Ntrips), big.mark = ","), 
                                                       paste(formatC((sum(xx$n)/sum(RM_Schedules$Ntrips))*100, digits = 4), "% (n = ",prettyNum(sum(xx$n), big.mark = ","), ")", sep = ""),
-                                                      paste(formatC((sum(xxx$n)/sum(RM_Schedules$Ntrips))*100, digits = 4), "% (n = ",prettyNum(sum(xxx$n), big.mark = ","), ")", sep = ""),
-                                                      NA,
-                                                      NA,
-                                                      NA) 
+                                                      paste(formatC((sum(xxx$n)/sum(RM_Schedules$Ntrips))*100, digits = 4), "% (n = ",prettyNum(sum(xxx$n), big.mark = ","), ")", sep = "")) 
 
 xTable =  htmlTable(tripSummary, rnames = FALSE,
                     caption="Table 3. Trip Summary for Roving Monitors January to December 2019 within Time Blocks",
                     header =  c("Region",
                                 "Total Available Trips",	
                                 "Attempted Trips",	
-                                "Successful Trips Monitored",	
-                                "Num. of Available Watermen",	
-                                "Num. of Ind. Watermen Attempted to be Monitored",
-                                "Num. of Ind. Watermen Successfully Monitored"),
+                                "Successful Trips Monitored"),
                     n.rgroup = c(6,1),
                     align = "lc",
                     align.header = "lccc",
                     css.cell = rbind(rep("font-size: 1.1em; padding-right: 0.6em", 
-                                         times=7), matrix("font-size: 1.1em; padding-right: 0.6em", ncol=7, nrow=7)),
-                    css.table = "margin-top: 1em; margin-bottom: 1em; table-layout: fixed; width: 1000px",
+                                         times=7), matrix("font-size: 1.1em; padding-right: 0.6em", ncol=4, nrow=7)),
+                    css.table = "margin-top: 1em; margin-bottom: 1em; table-layout: fixed; width: 600px",
                     total = "tspanner",
                     css.total = c("border-top: 1px solid grey; font-weight: 900"),
                     n.tspanner = c(nrow(tripSummary)))
@@ -117,4 +127,4 @@ write.table(xTable,
             col.names = FALSE,
             row.names = FALSE)
 
-rm(RM3, TripSummary)
+rm(RM3, tripSummary)
