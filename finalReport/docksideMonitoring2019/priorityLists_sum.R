@@ -8,7 +8,7 @@ BCP_OctDec <- read_excel(paste(dir.in2,"ECrabPriority Oct-Dec.xlsx", sep="")) %>
          endmonth = 12, 
          Fishery = "Blue Crab",
          DNRid = NA)
-FFP_OctDec <- read_excel(paste(dir.in2,"EFishPriority Oct- Dec.xlsx", sep="")) %>% 
+FFP_OctDec <- read_excel(paste(dir.in3,"EFishPriority Oct- Dec.xlsx", sep="")) %>% 
   rename(FisherName = Name, Monitoring = Priority) %>% 
   dplyr::select(License, Monitoring, FisherName) %>% 
   mutate(startmonth = 10, 
@@ -110,17 +110,60 @@ WM2 = WM %>% dplyr::select(TripID, DNRID, Date, SH, EH, Fishery) %>%
   distinct() 
 
 # cycle through month ranges and fishery
-WM2_BC = WM2 %>% filter(Fishery %in% "Blue Crab")
-plist_BC = plist %>% filter(Fishery %in% "Blue Crab") 
+WM2_BC = WM2 %>% filter(Fishery %in% "Blue Crab") %>% mutate(priority = NA)
+plist_BC = plist %>% filter(Fishery %in% "Blue Crab") %>% rename(priority = Monitoring)
 
-WM2_FF = WM2 %>% filter(Fishery %in% "Finfish")
-plist_FF = plist %>% filter(Fishery %in% "Finfish") 
+WM2_FF = WM2 %>% filter(Fishery %in% "Finfish") %>% mutate(priority = NA)
+plist_FF = plist %>% filter(Fishery %in% "Finfish") %>% rename(priority = Monitoring)
 
+# create function for FF
+define_priority <- function(x) {
+  if(any(plist_FF$DNRID %in% x[2])){
+    if(any(plist_FF$startmonth[plist_FF$DNRID %in% x[2]] <= as.numeric(x[5]) & plist_FF$endmonth[plist_FF$DNRID %in% x[2]] >= as.numeric(x[5]))){
+      a = plist_FF$priority[which(plist_FF$DNRID %in% x[2] & plist_FF$startmonth <= as.numeric(x[5]) & plist_FF$endmonth >= as.numeric(x[5]))]
+    }else{a="none"}
+  }else{a="none"}
+  return(a)
+}
+
+#xx = apply(WM2, 1, define_priority)
+
+for(b in 1:dim(WM2_FF)[1]){
+  WM2_FF$priority[b] = define_priority(WM2_FF[b,])
+}
+
+# create function for BC
+define_priority <- function(x) {
+  if(any(plist_BC$DNRID %in% x[2])){
+    if(any(plist_BC$startmonth[plist_BC$DNRID %in% x[2]] <= as.numeric(x[5]) & plist_BC$endmonth[plist_BC$DNRID %in% x[2]] >= as.numeric(x[5]))){
+      a = plist_BC$priority[which(plist_BC$DNRID %in% x[2] & plist_BC$startmonth <= as.numeric(x[5]) & plist_BC$endmonth >= as.numeric(x[5]))]
+    }else{a="none"}
+  }else{a="none"}
+  return(a)
+}
+
+
+for(b in 1:dim(WM2_BC)[1]){
+  WM2_BC$priority[b] = define_priority(WM2_BC[b,])
+}
 # ---------- #
 
 # ---------- #
 # summarize
 # ---------- #
+WM2 = rbind(WM2_BC, WM2_FF)
+RM2 = left_join(RM, dplyr::select(WM2, TripID, priority), by = "TripID") %>% 
+  mutate(priority = replace(priority, is.na(priority), "none"),
+         priority = toupper(priority))
+
+RM2 %>% dplyr::select(TripID, priority, MonitorReportNum) %>% 
+  group_by(TripID) %>%
+  mutate(lastR = ifelse(MonitorReportNum %in% max(MonitorReportNum), "yes","no")) %>%
+  filter(lastR %in% "yes") %>% 
+  ungroup() %>% distinct() %>% 
+  group_by(priority) %>% 
+  summarise(n=n()) %>% 
+  mutate(perc = (n/sum(n))*100)
 # ---------- #
 
 
