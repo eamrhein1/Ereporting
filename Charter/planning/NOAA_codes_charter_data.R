@@ -13,8 +13,6 @@ library(readxl)
 # --------- #
 
 # --------- #
-# HOW TO load shapefile
-# --------- #
 # import codes 
 source("G:/NOAAcodes/importNOAAcodes.R")
 
@@ -30,3 +28,4 @@ shp_df2 = left_join(shp_df, dat2, by="id")
 # plot data
 ggplot()+
   geom_polygon(data = shp_df2, aes(x = long, y = lat, group = group, fill = n, col = id))
+# --------- #
