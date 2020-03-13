@@ -34,11 +34,12 @@ library(raster)
 # --------- #
 
 # state_with_water=shapefile("G:/1.0 Restoration and Monitoring/8.0 Habitat modeling/NFWF Habitat/rawdata/Maryland_Political_Boundaries__State_Boundary/Maryland_Political_Boundaries__State_Boundary")
-state = shapefile("G:/1.0 Restoration and Monitoring/8.0 Habitat modeling/NFWF Habitat/2.0 Data/rawdata/Maryland_Physical_Boundaries__County_Boundaries_Detailed/Maryland_Physical_Boundaries__County_Boundaries_Detailed")
+#state = shapefile("G:/1.0 Restoration and Monitoring/8.0 Habitat modeling/NFWF Habitat/2.0 Data/rawdata/Maryland_Physical_Boundaries__County_Boundaries_Detailed/Maryland_Physical_Boundaries__County_Boundaries_Detailed")
 # bathy = shapefile("G:/1.0 Restoration and Monitoring/8.0 Habitat modeling/NFWF Habitat/rawdata/Maryland_Bathymetry__Chesapeake_Bay_Contours/Maryland_Bathymetry__Chesapeake_Bay_Contours")
 
 # path for all others
-dir.shp = "U:/ORP Operations/Fisheries Program/E-Reporting/4.0 Pilot projects/Pilot Projects/Roving Monitor Pilot/Roving Monitoring folder from Megan/monitoring regions (6) w zip codes/shapefiles of regions/"
+#dir.shp = "U:/ORP Operations/Fisheries Program/E-Reporting/4.0 Pilot projects/Pilot Projects/Roving Monitor Pilot/Roving Monitoring folder from Megan/monitoring regions (6) w zip codes/shapefiles of regions/"
+dir.shp = "U:/O365_NEW_ Operations/Sustainable Fisheries/E-Reporting/Pilot Projects/Roving Monitors/Regions/shapefiles of regions"
 
 # import data
 r1 = shapefile(paste(dir.shp, "Region 1 - Lower Western Shore", "Region1", sep = "/"))  
@@ -275,3 +276,8 @@ names(trueCentroids) = c("region","long","lat")
 # regions_shapefile = SpatialPolygonsDataFrame(Polys, data.frame(N = c("1","2","3","4","5","6"), row.names = c("1","2","3","4","5","6")))
 # proj4string(regions_shapefile) = CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0")
 # 
+
+to.add = as.data.frame(rbind(c(20625, 1), c(21106, 2), c(21624, 5), c(21653, 5), c(21664, 6), c(21914, 3)))
+names(to.add) = names(zip_region_list)
+zip_region_list = rbind(zip_region_list, to.add)
+rm(to.add)
