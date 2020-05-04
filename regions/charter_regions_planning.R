@@ -18,7 +18,7 @@ require(rgeos)
 # set paths
 # --------- #
 #dir.out = "U:/O365_NEW_ Operations/Sustainable Fisheries/E-Reporting/Data/FACTSdata/output/charter/regions"
-dir.out = "~/Oyster Recovery Partnership, Inc/ORP - Operations/Sustainable Fisheries/E-Reporting/Data/FACTSdata/output/charter/regions"
+dir.out = "~/Oyster Recovery Partnership, Inc/ORP - Operations/Sustainable Fisheries/E-Reporting/Data/FACTSdata/output/charter/regions/"
 # --------- #
 
 
@@ -198,3 +198,15 @@ p = ggplot() +
 p 
 ggsave(paste(dir.out, "charter_regions_option2.png", sep=""), p)
 # --------- #
+
+
+# --------- #
+# export
+# --------- #
+charter_zips = rbind(op2_R1, op2_R2, op2_R3, op2_R4) %>% 
+  dplyr::select(id, charter_region) %>% distinct() %>% 
+  rename(zipcode = id)
+
+write.csv(charter_zips, paste(dir.out, "charter_regions_May2020.csv", sep=""), row.names = FALSE)
+# --------- #
+
