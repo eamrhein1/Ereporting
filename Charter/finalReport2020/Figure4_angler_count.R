@@ -1,5 +1,5 @@
 # -------------------- #
-# Angler Count
+# Angler count
 # created by K. Coleman Dec. 2020
 # -------------------- #
 
@@ -16,7 +16,7 @@ library(readr)
 # -------------------- #
 # load data
 # -------------------- #
-dat <- read_csv("~/Oyster Recovery Partnership, Inc/ORP - Operations/Sustainable Fisheries/E-Reporting/Data/FACTSdata/rawdata/CharterTrips_120920.csv")
+dat <- read_csv("~/Oyster Recovery Partnership, Inc/ORP - Operations/Sustainable Fisheries/E-Reporting/Data/FACTSdata/rawdata/CharterTrips_121420.csv")
 # -------------------- #
 
 
@@ -25,10 +25,17 @@ dat <- read_csv("~/Oyster Recovery Partnership, Inc/ORP - Operations/Sustainable
 # -------------------- #
 # filter so that the trip data is only last report
 names(dat) = gsub(" ","", names(dat))
+names(dat) = gsub("#","", names(dat))
 
-dat = dat %>% dplyr::select(TripID, AnglerCount) %>%
-  distinct() %>% 
-  filter(AnglerCount < 600) # remove outliers
+dat = dat %>% 
+  dplyr::select(TripID, AnglerCount, SH, EH) %>%
+  group_by(TripID) %>%
+  mutate(lastSH = ifelse(SH == max(SH),"yes","no"),
+         lastEH = ifelse(EH == max(EH),"yes","no")) %>%
+  filter(lastSH %in% "yes" & lastEH %in% "yes") %>%
+  dplyr::select(-lastSH, -lastEH) %>%
+  distinct() %>%
+  filter(AnglerCount < 58) # remove outliers
 
 # basic stats
 min(dat$AnglerCount)
