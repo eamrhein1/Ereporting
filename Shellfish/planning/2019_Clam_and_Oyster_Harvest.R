@@ -46,6 +46,10 @@ clam_shp2 = left_join(shp_df2, dat, by = "id") %>%
 oys_shp = left_join(shp_df, dat2, by = "id") %>%
   group_by(id) %>%
   mutate(Bushels = sum(Bushels, na.rm=TRUE))
+
+oys_shp2 = left_join(shp_df2, dat2, by = "id") %>%
+  group_by(id) %>%
+  mutate(Bushels = sum(Bushels, na.rm=TRUE))
 # --------------------- #
 
 
@@ -54,15 +58,15 @@ oys_shp = left_join(shp_df, dat2, by = "id") %>%
 # --------------------- #
 dir.out = "~/Oyster Recovery Partnership, Inc/ORP - Operations/Sustainable Fisheries/E-Reporting/Pilot Projects/Shellfish/Planning/"
 p = ggplot() + 
-  geom_polygon(data = shp_df, aes(x=long, y=lat, group = group), col="black", fill="white") +
-  geom_polygon(data = clam_shp[clam_shp$Species %in% "Razor",], aes(x=long, y=lat, group=group, fill = Bushels)) + 
+  geom_polygon(data = shp_df2, aes(x=long, y=lat, group = group), col="black", fill="white") +
+  geom_polygon(data = clam_shp2[clam_shp2$Species %in% "Razor",], aes(x=long, y=lat, group=group, fill = Bushels)) + 
   labs(x="Longitude",y="Latitude",title="2019 Razor Clam Harvest")
 p
 ggsave(paste(dir.out, "2019RazorClamHarvest.png",sep=""),p)
 
 p = ggplot() + 
-  geom_polygon(data = shp_df, aes(x=long, y=lat, group = group), col="black", fill="white") +
-  geom_polygon(data = clam_shp[clam_shp$Species %in% "Soft Clam",], aes(x=long, y=lat, group=group, fill = Bushels)) + 
+  geom_polygon(data = shp_df2, aes(x=long, y=lat, group = group), col="black", fill="white") +
+  geom_polygon(data = clam_shp2[clam_shp2$Species %in% "Soft Clam",], aes(x=long, y=lat, group=group, fill = Bushels)) + 
   labs(x="Longitude",y="Latitude",title="2019 Soft Shell Clam Harvest")
 p
 ggsave(paste(dir.out, "2019SoftShellClamHarvest.png",sep=""),p)
@@ -75,9 +79,8 @@ p
 ggsave(paste(dir.out, "2019HardShellClamHarvest.png",sep=""),p)
 
 p = ggplot() + 
-  geom_polygon(data = shp_df, aes(x=long, y=lat, group = group), col="black", fill="white") +
-  geom_polygon(data = oys_shp, aes(x=long, y=lat, group=group, fill = Bushels)) + 
-  geom_polygon(data = oys_shp[is.na(oys_shp$Bushels),], aes(x=long, y=lat, group=group), fill="white") + 
+  geom_polygon(data = shp_df2, aes(x=long, y=lat, group = group), col="black", fill="white") +
+  geom_polygon(data = oys_shp2, aes(x=long, y=lat, group=group, fill = Bushels)) + 
   labs(x="Longitude",y="Latitude",title="2019 Oyster Harvest")
 p
 ggsave(paste(dir.out, "2019OysterHarvest.png",sep=""),p)
