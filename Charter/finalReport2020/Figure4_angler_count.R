@@ -16,7 +16,7 @@ library(readr)
 # -------------------- #
 # load data
 # -------------------- #
-dat <- read_csv("~/Oyster Recovery Partnership, Inc/ORP - Operations/Sustainable Fisheries/E-Reporting/Data/FACTSdata/rawdata/CharterTrips_121420.csv")
+dat <- read_csv("~/Oyster Recovery Partnership, Inc/ORP - Operations/Sustainable Fisheries/E-Reporting/Data/FACTSdata/rawdata/CharterTrips_122920.csv")
 # -------------------- #
 
 
@@ -34,8 +34,8 @@ dat = dat %>%
          lastEH = ifelse(EH == max(EH),"yes","no")) %>%
   filter(lastSH %in% "yes" & lastEH %in% "yes") %>%
   dplyr::select(-lastSH, -lastEH) %>%
-  distinct() %>%
-  filter(AnglerCount < 58) # remove outliers
+  distinct() #%>%
+  #filter(AnglerCount < 58) # remove outliers
 
 # basic stats
 min(dat$AnglerCount)
