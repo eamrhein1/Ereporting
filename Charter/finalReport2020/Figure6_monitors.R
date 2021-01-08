@@ -49,6 +49,9 @@ reports = reports %>%
   filter(lastR %in% "yes") %>%
   dplyr::select(-lastR) 
 
+# remove false data
+reports = filter(reports, !ReportedBy %in% "Baleze Danoit")
+
 # fix species name differences
 trips = trips %>%
   mutate(Species = replace(Species, Species %in% "DRUM, BLACK", "BLACK DRUM"),                 
@@ -61,6 +64,12 @@ trips = trips %>%
          Species = replace(Species, Species %in% "BASS, STRIPED", "STRIPED BASS"),               
          Species = replace(Species, Species %in% "SEA TROUT, GRAY / WEAKFISH", "WEAKFISH OR GRAY SEA TROUT"), 
          Species = replace(Species, Species %in% "PERCH, WHITE", "WHITE PERCH"))  
+
+# how many monitoring trips were done
+length(unique(reports$TripID))
+
+# how many successful monitoring trips were there
+length(unique(reports$TripID[reports$Result %in% c("MONITORED", "MONITORED (on paper")]))
 # -------------------- #
 
 
@@ -83,6 +92,7 @@ AC_combo = AC_combo %>% mutate(ac_diff = captain_ac - monitor_ac)
 # range counts were off by
 min(AC_combo$ac_diff, na.rm=T)
 max(AC_combo$ac_diff, na.rm=T)
+
 rm(AC_combo)
 
 ###### Species Count
@@ -103,11 +113,20 @@ spp_count_combo = inner_join(dplyr::select(trips, TripID, Species, Count, Dispos
          monitor_count = Count.y) %>%
   mutate(count_diff = trip_count - monitor_count)
 
+# percent of trips monitors missed the angler count
+(length(which(is.na(spp_count_combo$count_diff)==TRUE))/length(spp_count_combo$count_diff))*100
+# percent of trips monitors angler count was the same as captain angler count
+(length(which(spp_count_combo$count_diff==0))/length(spp_count_combo$count_diff))*100
 # range counts were off by
 mean(spp_count_combo$count_diff, na.rm=T)
+sd(spp_count_combo$count_diff, na.rm=T)
+
 median(spp_count_combo$count_diff, na.rm=T)
 min(spp_count_combo$count_diff, na.rm=T)
 max(spp_count_combo$count_diff, na.rm=T)
+# visually inspect which species had counts off 
+# typically more bait fish had higher counts off
+x = filter(spp_count_combo, !count_diff %in% 0)
 
 # plot
 p = ggplot() + 
