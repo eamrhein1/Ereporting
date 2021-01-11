@@ -1,5 +1,7 @@
 # -------------------- #
 # compare monitor reports to charter trips
+# no actual figure is in the report currently
+#
 # created by K. Coleman Dec. 2020
 # -------------------- #
 
@@ -78,6 +80,9 @@ length(unique(reports$TripID[reports$Result %in% c("MONITORED", "MONITORED (on p
 
 length(unique(reports$TripID[reports$Result %in% c("MONITORED", "MONITORED (on paper)") & reports$Onboard %in% "N"]))
 (length(unique(reports$TripID[reports$Result %in% c("MONITORED", "MONITORED (on paper)") & reports$Onboard %in% "N"]))/ length(unique(reports$TripID[reports$Onboard %in% "N"]))) * 100
+
+# unique harvest locations
+length(unique(trips$EHAddress[trips$TripID %in% reports$TripID[reports$Result %in% c("MONITORED","MONITORED (on paper)")]]))
 # -------------------- #
 
 
@@ -148,32 +153,9 @@ p
 
 rm(spp_count_combo)
 
-###### Species Weight
-
-# how many fish were filleted before they reacted the dock (e.g. captain said kept, monitor said kept fileted)
-# this may not be right
-x = dplyr::select(reports, TripID, SpeciesGrade, Quantity, Disposition, Result) %>% 
-  rename(Species = SpeciesGrade) %>%
-  filter(Result %in% c("MONITORED","MONITORED (on paper)")) %>% 
-  distinct() %>% 
-  filter(!Disposition %in% "Released") 
-y = dplyr::select(trips, TripID, Species, Quantity, Disposition) %>%
-  distinct() %>%
-  filter(!Disposition %in% "Released",
-         TripID %in% x$TripID)
-not_matched = full_join(x,y,by=c("TripID","Species","Disposition")) %>%
-  mutate(q = sum(Quantity.x, Quantity.y, na.rm=FALSE)) %>%
-  filter(is.na(q)) %>%
-  group_by(TripID, Species) %>% 
-  summarise(n=n()) %>% 
-  filter(!n %in% 1)
-
-spp_disp_change = 
-  
-# combo 
+###### Species Weight for kept
 spp_quantity_combo = inner_join(dplyr::select(trips, TripID, Species, Quantity, Disposition) %>%
-                                  distinct() %>%
-                                  filter(Disposition %in% c("Kept")), 
+                                  distinct(), 
                              dplyr::select(reports, TripID, SpeciesGrade, Quantity, Disposition, Result) %>% 
                                rename(Species = SpeciesGrade) %>%
                                filter(Result %in% c("MONITORED","MONITORED (on paper)")) %>% 
@@ -210,5 +192,48 @@ p = ggplot() +
 p
 
 rm(spp_quantity_combo)
+
+###### Species Weight for kept for bait
+unique(reports$TripID[reports$Disposition %in% "Kept for bait" & reports$Quantity>0])
+
+###### Released fish
+# want to know when an RM reported a released fish but captain did not
+
+# onboard
+ob = reports %>% 
+  rename(Species = SpeciesGrade) %>%
+  filter(Onboard %in% "Y",
+         Result %in% c("MONITORED","MONITORED (on paper)"),
+         Disposition %in% "Released")
+length(unique(ob$TripID))
+
+ob_trip = trips %>%
+  filter(TripID %in% ob$TripID,
+         Disposition %in% "Released")
+length(unique(ob_trip$TripID))
+
+length(unique(ob_trip$TripID))/length(unique(ob$TripID))
+
+ob_join = left_join(ob, ob_trip, by=c("TripID","Species"))
+length(ob_join$Species[ob_join$Species %in% "STRIPED BASS"])/length(ob_join$Species)
+
+# RM
+rm = reports %>% 
+  rename(Species = SpeciesGrade) %>%
+  filter(Onboard %in% "N",
+         Result %in% c("MONITORED","MONITORED (on paper)"),
+         Disposition %in% "Released")
+length(unique(rm$TripID))
+
+rm_trip = trips %>%
+  filter(TripID %in% rm$TripID,
+         Disposition %in% "Released")
+length(unique(rm_trip$TripID))
+
+length(unique(rm_trip$TripID))/length(unique(rm$TripID))
+
+rm_join = left_join(rm, rm_trip, by=c("TripID","Species"))
+length(rm_join$Species[rm_join$Species %in% "STRIPED BASS"])/length(rm_join$Species)
+
 # -------------------- #
 
