@@ -18,10 +18,10 @@ library(tableHTML)
 # -------------------- #
 # set directories
 # -------------------- # 
-dir.in = "//orp-dc01/Users/ORP Operations/Fisheries Program/E-Reporting/4.0 Pilot projects/Data/FACTSdata/rawdata/"
-dir.in2 = "//orp-dc01/Users/ORP Operations/Fisheries Program/E-Reporting/4.0 Pilot projects/Pilot Projects/Roving Monitor Pilot/Documentation/Resources for RMs/RM scheduling and priority lists/"
-dir.in3 = "//orp-dc01/Users/ORP Operations/Fisheries Program/E-Reporting/4.0 Pilot projects/Data/temp/"
-dir.out = "//orp-dc01/Users/ORP Operations/Fisheries Program/E-Reporting/4.0 Pilot projects/Data/FACTSdata/output/final_report_2019/"
+dir.in = "Oyster Recovery Partnership, Inc/ORP - Operations/Sustainable Fisheries/E-Reporting/Data/FACTSdata/rawdata/"
+dir.in2 = "Oyster Recovery Partnership, Inc/ORP - Operations/Sustainable Fisheries/E-Reporting/Pilot Projects/Pilot Projects/Roving Monitors/Documentation/Resources for RMs/RM scheduling and priority lists/"
+dir.in3 = "Oyster Recovery Partnership, Inc/ORP - Operations/Sustainable Fisheries/E-Reporting/Data/temp/"
+dir.out = "Oyster Recovery Partnership, Inc/ORP - Operations/Sustainable Fisheries/E-Reporting/Data/FACTSdata/output/final_report_2019/"
 # -------------------- # 
 
 # -------------------- #
@@ -110,11 +110,15 @@ length(unique(WM$TripID))
 (length(unique(RM$TripID[RM$Fishery %in% "Finfish"]))/length(unique(WM$TripID[WM$Fishery %in% "Finfish"])))*100
 length(unique(WM$TripID[WM$Fishery %in% "Finfish"]))
 length(unique(RM$TripID[RM$Fishery %in% "Finfish"]))
+length(unique(RM$TripID[RM$Fishery %in% "Finfish" & RM$Result %in% c("MONITORED","MONITORED (on paper)")]))/ length(unique(RM$TripID[RM$Fishery %in% "Finfish"]))
+
 
 # portion of trips monitored for BC
 (length(unique(RM$TripID[RM$Fishery %in% "Blue Crab"]))/length(unique(WM$TripID[WM$Fishery %in% "Blue Crab"])))*100
 length(unique(WM$TripID[WM$Fishery %in% "Blue Crab"]))
 length(unique(RM$TripID[RM$Fishery %in% "Blue Crab"]))
+length(unique(RM$TripID[RM$Fishery %in% "Blue Crab" & RM$Result %in% c("MONITORED","MONITORED (on paper)")]))/ length(unique(RM$TripID[RM$Fishery %in% "Blue Crab"]))
+
 
 # successfully monitored
 # be careful of reports where they were edited but show both results in data
