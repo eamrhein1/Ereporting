@@ -7,7 +7,7 @@
 # load packages
 # ---------- #
 library(dplyr)
-library(ggplot)
+library(ggplot2)
 library(readr)
 library(readxl)
 # ---------- #
@@ -16,9 +16,11 @@ library(readxl)
 # ---------- #
 # load data
 # ---------- #
-buytickets <- read.csv("Oyster Recovery Partnership, Inc/ORP - Operations/Sustainable Fisheries/E-Reporting/Data/FACTSdata/rawdata/ShellfishBuyTickets_122821.csv")
-reports <- read.csv("Oyster Recovery Partnership, Inc/ORP - Operations/Sustainable Fisheries/E-Reporting/Data/FACTSdata/rawdata/ShellfishMonitorReports_122821.csv")
-trips <- read.csv("Oyster Recovery Partnership, Inc/ORP - Operations/Sustainable Fisheries/E-Reporting/Data/FACTSdata/rawdata/ShellfishTrips_122821.csv")
+buytickets <- read.csv("Oyster Recovery Partnership, Inc/ORP - Operations/Sustainable Fisheries/E-Reporting/Data/FACTSdata/rawdata/ShellfishBuyTickets_010422.csv")
+reports <- read.csv("Oyster Recovery Partnership, Inc/ORP - Operations/Sustainable Fisheries/E-Reporting/Data/FACTSdata/rawdata/ShellfishMonitorReports_010422.csv")
+trips <- read.csv("Oyster Recovery Partnership, Inc/ORP - Operations/Sustainable Fisheries/E-Reporting/Data/FACTSdata/rawdata/ShellfishTrips_010422.csv")
+trips2 <- read.csv("Oyster Recovery Partnership, Inc/ORP - Operations/Sustainable Fisheries/E-Reporting/Data/FACTSdata/rawdata/ShellfishTrip_2022only.csv")
+trips = rbind(trips, trips2) #2022 data is separate
 trips = trips %>% filter(!Harvester.Name %in% "Test Fisher")
 #trips[trips$Harvester.Name %in% "Test Fisher",]
 #outreach <- read_excel("Oyster Recovery Partnership, Inc/ORP - Operations/Sustainable Fisheries/E-Reporting/Pilot Projects/Shellfish/Reporting/Progress Reports/SFCandidates3_Dec2021.xlsx", skip = 1)
