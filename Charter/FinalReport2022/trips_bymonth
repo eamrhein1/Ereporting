@@ -1,0 +1,56 @@
+# load packages
+# -------------------- #
+library(dplyr)
+library(ggplot2)
+library(readr)
+library(lubridate)
+# -------------------- #
+
+# -------------------- #
+# load data
+# -------------------- #
+#load data
+dat2020 = read_csv("C:/Users/Eric Amrhein/Downloads/2020CharterTrips.csv")
+dat2021 = read.csv("C:/Users/Eric Amrhein/Downloads/2021CharterTrips (2).csv")
+dat2022 = read_csv("C:/Users/Eric Amrhein/Downloads/Chartertrips_8.1.22.csv")
+
+# filter so that the trip data is only last report
+names(dat2020) = gsub(" ","", names(dat2020))
+names(dat2020) = gsub("#","", names(dat2020))
+
+names(dat2021) = gsub(" ","", names(dat2021))
+names(dat2021) = gsub("#","", names(dat2021))
+names(dat2021) = gsub("\\.", "", names(dat2021))
+
+names(dat2022) = gsub(" ","", names(dat2022))
+names(dat2022) = gsub("#","", names(dat2022))
+
+#Join Data from all 3 years
+alltrips <- rbind(dat2020, dat2021, dat2022)
+
+# manipulate data
+# -------------------- #
+# filter so that the trip data is only last report
+names(alltrips) = gsub(" ","", names(alltrips))
+
+alltrips = alltrips %>% dplyr::select(TripID, Date) %>%
+  mutate(Date = as.POSIXct(Date, format = "%d/%m/%Y")) %>%
+  mutate(mo = month(Date)) %>%
+  distinct()
+
+# summarize
+dat_sum = alltrips %>% group_by(mo) %>%
+  summarize(n=n())
+
+# stats
+length(unique(alltrips$TripID))
+
+# plot
+# -------------------- #
+p = ggplot(data = dat_sum, aes(x=mo, y=n), fill="black") + 
+  geom_bar(stat="identity") + 
+  scale_x_continuous(breaks=c(4,6,8,10,12)) +
+  theme_bw() + 
+  theme(text = element_text(size = 20)) +
+  labs(x="Month",y="Number of Trips") 
+p 
